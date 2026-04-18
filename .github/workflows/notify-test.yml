@@ -1,0 +1,36 @@
+name: notify-test
+
+# workflow_dispatch 전용 — 알림 경로 점검용. cron 없음.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - run: |
+          python -m pip install --upgrade pip
+          pip install requests
+          pip install "git+https://github.com/ryanking13/SRT.git@master"
+
+      - name: Send test notification
+        env:
+          KC_TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          KC_TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: |
+          python - <<'PY'
+          from watch import notify
+          notify("🚄 SRT #681 자리 생김! (테스트)\n[SRT 681] 05월 01일, 수서~여수EXPO\nhttps://etk.srail.kr/")
+          print("sent from GitHub Actions")
+          PY

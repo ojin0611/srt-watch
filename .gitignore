@@ -1,0 +1,16 @@
+# 런타임 산출물 — 리포에 올리지 않음
+.venv/
+session.pkl
+state.json
+out.log
+err.log
+
+# macOS
+.DS_Store
+
+# Editor/IDE
+.idea/
+.vscode/
+
+# Claude Code 로컬 설정
+.claude/
