@@ -1,10 +1,11 @@
 name: srt-watch
 
 on:
-  # 1분 간격 (public repo 라 Actions 분 무제한. 실제 발화는 GitHub 스케줄러
-  # 상황에 따라 다소 지연될 수 있음 — 공식적으로도 1분 cron 은 "best-effort")
+  # GitHub Actions 의 스케줄러는 5분 미만 cron 을 사실상 지키지 않고,
+  # 그마저도 high-load 시 수십 분씩 지연됨. 그래서 cron 은 5분으로 고정하고,
+  # 발화된 러너 안에서 watch.py 를 10회(≈ 100초) 반복 실행하여 감시 공백을 줄인다.
   schedule:
-    - cron: '* * * * *'
+    - cron: '*/5 * * * *'
   # 수동 트리거
   workflow_dispatch:
 
@@ -19,7 +20,7 @@ permissions:
 jobs:
   watch:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
 
     steps:
       - uses: actions/checkout@v4
@@ -45,13 +46,21 @@ jobs:
           restore-keys: |
             srt-watch-state-
 
-      - name: Run watch.py
+      - name: Run watch.py in a 10s-interval loop (10 iterations ≈ 100s)
         env:
           KC_SRT_ID: ${{ secrets.SRT_ID }}
           KC_SRT_PW: ${{ secrets.SRT_PW }}
           KC_TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           KC_TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-        run: python watch.py
+        run: |
+          for i in $(seq 1 10); do
+            echo "=== iteration $i/10 ==="
+            python watch.py || echo "[iter $i] failed (continuing)"
+            # 마지막 iteration 뒤에는 sleep 불필요
+            if [ "$i" -lt 10 ]; then
+              sleep 10
+            fi
+          done
 
       - name: Save state.json to cache
         if: always()
